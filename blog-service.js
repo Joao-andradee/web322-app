@@ -6,7 +6,7 @@
 *
 * Name: João Vitor Andrade Miranda Student ID: 116499203 Date: 05/27/2022
 *
-* Online (Heroku) URL:
+* Online (Heroku) URL:  https://dry-cliffs-12918.herokuapp.com/
 *
 **********************************************************************************************/
 module.exports = {getCategories,getPublishedPosts,getAllPosts,initialize} 
@@ -14,14 +14,26 @@ const fs = require("fs"); // required at the top of your module
 const { resolve } = require("path");
 var categ = require("./data/categories.json")
 var getPost = require('./data/posts.json')
-posts= []
-publishedPosts = []
-categories = []
+var posts= []
+var publishedPosts = []
+var categories = []
 
 
 function initialize(){
-    fs.readFile('./data/posts.json', 'utf8', (err, readData) => { if (err) reject(err);posts = JSON.parse(readData);resolve();});
-    fs.readFile('./data/categories.json', 'utf8', (err, readData) => { if (err) reject(err);categories = JSON.parse(readData);resolve();});
+    return new Promise(function(resolve,reject){
+        fs.readFile('./data/posts.json', 'utf8', (err, readData) => { 
+            if (err) 
+                reject(err);
+            else{
+                posts = JSON.parse(readData);
+                }});
+        fs.readFile('./data/categories.json', 'utf8', (err, readData) => { 
+            if (err) 
+                reject(err);
+            else{
+                categories = JSON.parse(readData);
+                resolve("Sucess");}});
+    })
 }
 
 function getAllPosts () {

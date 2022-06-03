@@ -6,17 +6,16 @@
 *
 * Name: João Vitor Andrade Miranda Student ID: 116499203 Date: 05/27/2022
 *
-* Online (Heroku) URL:
+* Online (Heroku) URL:  https://dry-cliffs-12918.herokuapp.com/
 *
 **********************************************************************************************/
 
 var HTTP_PORT = process.env.PORT || 8080;
-const blog_service = require('./blog-service');
+var blog_service = require('./blog-service');
 //const categ = require("./data/categories.json");
 //const post = require("./data/posts.json");
 //var publishedPosts = []
 var express = require("express");
-const res = require('express/lib/response');
 var app = express();
 
 
@@ -60,5 +59,5 @@ app.get("*", (req, res) => {
 
 
 // setup http server to listen on HTTP_PORT
-app.listen(HTTP_PORT)
-//blog_service.initialize().then(()=>{app.listen(HTTP_PORT)}).catch(()=>{"Fail to initialize the data."})
+//app.listen(HTTP_PORT)
+blog_service.initialize().then(()=>{app.listen(HTTP_PORT)}).catch(()=>{"Fail to initialize the data."})
