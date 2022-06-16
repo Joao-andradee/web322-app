@@ -12,11 +12,21 @@
 
 var HTTP_PORT = process.env.PORT || 8080;
 var blog_service = require('./blog-service');
-//const categ = require("./data/categories.json");
-//const post = require("./data/posts.json");
-//var publishedPosts = []
+const multer = require("multer");
+const cloudinary = require('cloudinary').v2
+const streamifier = require('streamifier')
 var express = require("express");
 var app = express();
+var getPost = require('./data/posts.json')
+var path = require('path')
+
+cloudinary.config({
+    cloud_name: 'web322a',
+    api_key: '934275813276677',
+    api_secret: 't68jqCN_o7mYn6nMLmvDwrhsWhs',
+    secure: true
+    });
+const upload = multer(); // no { storage: storage }
 
 
 //css
@@ -39,21 +49,58 @@ app.get("/blog", (req, res) => {
 });
 
 app.get("/posts", (req, res) => {
-    //var jsonString = JSON.stringify(post);
-    //res.send(jsonString);
-    //res.json(post);
-    blog_service.getAllPosts().then((getResponse)=>{res.send(getResponse)}).catch((getReject)=>{res.send(getReject)})
-
+    var cat = req.query.category;
+    var minDat = req.query.minDate;
+    if(cat < 6 && cat > 0){
+        blog_service.getPostsByCategory(cat).then((getResponse)=>{res.send(getResponse)}).catch((getReject)=>{res.send(getReject)})
+    }
+    else if(minDat != null){
+        blog_service.getPostsByMinDate(minDat).then((getResponse)=>{res.send(getResponse)}).catch((getReject)=>{res.send(getReject)})
+    }else{
+        blog_service.getAllPosts().then((getResponse)=>{res.send(getResponse)}).catch((getReject)=>{res.send(getReject)})
+    }
 });
+app.post("/posts/add",upload.single("featureImage"),(req, res) => {
+    let streamUpload = (req) => {
+        return new Promise((resolve, reject) => {
+            let stream = cloudinary.uploader.upload_stream(
+                (error, result) => {
+                    if (result) {
+                        resolve(result);
+                    } else {
+                        reject(error);
+                    }
+                }
+            );
+            streamifier.createReadStream(req.file.buffer).pipe(stream);
+        });
+    };
+    async function upload(req) {
+        let result = await streamUpload(req);
+        console.log(result);
+        return result;
+    }
+    upload(req).then((uploaded)=> {
+        req.body.featureImage = uploaded.url;
+        blog_service.addPost(req.body).then(() => {
+            res.redirect('/posts');
+        });
+    });
+});
+
+app.get("/posts/add", (req, res) => {
+    res.sendFile(path.join(__dirname, '/views/addPost.html'));
+});
+
+app.get("/posts/:id", (req, res) => {
+    blog_service.getPostById(req.params.id).then((getResponse)=>{res.send(getResponse)}).catch((getReject)=>{res.send(getReject)})
+});
+
 app.get("/categories", (req, res) => {
-    //var jsonString = JSON.stringify(categ);
-    //res.send(jsonString);
-    //res.json(categ);
     blog_service.getCategories().then((getResponse)=>{res.send(getResponse)}).catch((getReject)=>{res.send(getReject)})
 });
 
 app.get("*", (req, res) => {
-    console.log("The specified route does not exist")
     res.send("<h1><b>ERROR 404 - Page does not exist<b><h1>")
 });
 
