@@ -9,7 +9,7 @@
 * Online (Heroku) URL:  https://dry-cliffs-12918.herokuapp.com/
 *
 **********************************************************************************************/
-module.exports = {getCategories,getPublishedPosts,getAllPosts,initialize,addPost,getPostsByCategory,getPostsByMinDate,getPostsByCategory,getPostById} 
+module.exports = {getCategories,getPublishedPosts,getAllPosts,initialize,addPost,getPostsByCategory,getPostsByMinDate,getPostsByCategory,getPostById,getPublishedPostsByCategory} 
 const fs = require("fs"); // required at the top of your module
 const { resolve } = require("path");
 var categ = require("./data/categories.json")
@@ -84,8 +84,29 @@ function getPostsByCategory (category) {
         }
     });
 }
+function getPublishedPostsByCategory(category){
+    var filterSearch =[]
+    var index =0
+    return new Promise((resolve, reject) => {
+        if (category < 0 || category >5) {
+            reject("So sorry, but there is no results to display");
+        }else{
+            for(var i =0;i<getPost.length;i++){
+                if(getPost[i].published == true && getPost[i].category == category){
+                    filterSearch[index] = getPost[i]
+                    index++
+                }
+            }
+            resolve(filterSearch);
+        }
+    });
+    
+}
 
 function addPost (postData){
+    var day = new Date().getDate();
+    var month = new Date().getMonth() + 1;
+    var year = new Date().getFullYear();
     return new Promise ((resolve,reject)=>{
         if(postData.published == undefined){
             postData.published = false;
@@ -93,6 +114,15 @@ function addPost (postData){
             postData.published = true;
         }
         postData.id = getPost.length +1;
+        if(day <10 && month < 10){
+            postData.postDate = year + "-" +  "0" + month + "-" + "0" + day
+        }else if(month <10){
+            postData.postDate = year + "-" + "0" + month + "-" + day
+        }else if (day < 10){
+            postData.postDate = year + "-"+ month + "-" + "0" + day
+        }else{
+            postData.postDate = year + "-" + month + "-" + day
+        }
         getPost.push(postData);
         resolve(true);
     })
