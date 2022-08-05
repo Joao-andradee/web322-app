@@ -1,10 +1,10 @@
 {{!-- *********************************************************************************************
-* WEB322 – Assignment 4
+* WEB322 – Assignment 6
 * I declare that this assignment is my own work in accordance with Seneca Academic Policy.
 * No part of this assignment has been copied manually or electronically from any other source
 * (including web sites) or distributed to other students.
 *
-* Name: João Vitor Andrade Miranda Student ID: 116499203 Date: 07/07/2022
+* Name: João Vitor Andrade Miranda Student ID: 116499203 Date: 08/05/2022
 *
 * Online (Heroku) URL:  https://dry-cliffs-12918.herokuapp.com/
 *
@@ -39,9 +39,29 @@
             {{#navLink "/about"}}About{{/navLink}}
           </ul>
           <ul class="nav navbar-nav navbar-right">
-            {{#navLink "/posts"}}Posts{{/navLink}}
-            {{#navLink "/categories"}}Categories{{/navLink}}   
-            {{!-- {{#navLink "/posts/add"}}Add Post{{/navLink}}    --}}      
+            {{#if session.user}}
+                <form class="navbar-form navbar-right">
+                    <div class="dropdown">
+                        <button class="btn btn-primary dropdown-toggle" type="button" id="userMenu" data-toggle="dropdown">
+                            <span class="glyphicon glyphicon-user"></span>&nbsp;&nbsp;{{session.user.userName}}&nbsp;&nbsp;<span
+                                class="caret"></span>
+                        </button>
+                        <ul class="dropdown-menu" aria-labelledby="userMenu">
+                            <li><a href="/userHistory">User History</a></li>
+                            <li><a href="/logout">Log Out</a></li>
+                        </ul>
+                    </div>
+                </form>
+                <ul class="nav navbar-nav navbar-right">
+                    {{#navLink "/posts"}}Posts{{/navLink}}
+                    {{#navLink "/categories"}}Categories{{/navLink}}
+                </ul>
+            {{else}}
+                <form class="navbar-form navbar-right">
+                    <a href="/register" class="btn btn-success"><span class="glyphicon glyphicon-cog"></span>&nbsp;&nbsp;Register</a>
+                    <a href="/login" class="btn btn-primary"><span class="glyphicon glyphicon-chevron-right"></span>&nbsp;&nbsp;Log In</a>
+                </form>
+            {{/if}}     
           </ul>
         </div><!-- /.navbar-collapse -->
       </div><!-- /.container-fluid -->

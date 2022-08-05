@@ -1,10 +1,10 @@
 /*********************************************************************************************
-* WEB322 – Assignment 5
+* WEB322 – Assignment 6
 * I declare that this assignment is my own work in accordance with Seneca Academic Policy.
 * No part of this assignment has been copied manually or electronically from any other source
 * (including web sites) or distributed to other students.
 *
-* Name: João Vitor Andrade Miranda Student ID: 116499203 Date: 07/20/2022
+* Name: João Vitor Andrade Miranda Student ID: 116499203 Date: 08/05/2022
 *
 * Online (Heroku) URL:  https://dry-cliffs-12918.herokuapp.com/
 *
@@ -20,8 +20,31 @@ var express = require("express");
 var path = require('path');
 const stripJs = require('strip-js');
 const { info } = require('console');
+const authData = require('./auth-service');
+const clientSessions = require ('client-sessions');
 var app = express();
 
+app.use(clientSessions({
+    cookieName: "session",
+    secret: "assignment6WEB322",
+    duration: 2 * 60 * 1000,
+    activeDuration: 1000 * 60 
+  }));
+
+app.use(function(req, res, next) {
+res.locals.session = req.session;
+next();
+});
+
+app.use(express.urlencoded({extended: true}));
+
+function ensureLogin(req, res, next) {
+    if (!req.session.user) {
+        res.redirect("/login");
+    } else {
+        next();
+    }
+}
 
 app.engine('.hbs',exphbs.engine({
     extname:'.hbs',
@@ -55,7 +78,6 @@ app.engine('.hbs',exphbs.engine({
     }
 }))
 
-app.use(express.urlencoded({extended: true}));
 
 app.set('view engine','.hbs')
 cloudinary.config({
@@ -64,15 +86,12 @@ cloudinary.config({
     api_secret: 't68jqCN_o7mYn6nMLmvDwrhsWhs',
     secure: true
     });
-const upload = multer(); // no { storage: storage }
+const upload = multer();
 
-
-//css
-//app.use(express.static("static"));
 app.use(express.static('public'));
 app.use(express.static('views'));
 
-// setup a 'route' to listen on the default url path
+
 app.get("/", (req, res) => {
     res.redirect('blog')
 });
@@ -81,6 +100,22 @@ app.get("/about", (req, res) => {
     res.render('about',{
         data: info
     })
+});
+
+app.get("/login", (req, res) => {
+    res.render('login');
+});
+
+app.get("/register", (req, res) => {
+    res.render('register');
+});
+
+app.post("/register", (req, res) => {
+    authData.registerUser(req.body).then(() => {
+        res.render('register', {successMessage: "User created"});
+    }).catch((err) => {
+        res.render('register', {errorMessage: err, userName: req.body.userName});
+    });
 });
 
 app.get('/blog', async (req, res) => {
@@ -137,13 +172,13 @@ app.get('/blog/:id', async (req, res) => {
     res.render("blog", {data: viewData})
 });
 
-app.get("/posts", (req, res) => {
+app.get("/posts",ensureLogin, (req, res) => {
     var cat = req.query.category;
     var minDat = req.query.minDate;
     if(blogData.length==0){
         res.render("posts",{ message: "No results" });
     }
-    if(cat < 6 && cat > 0){
+    if(cat > 0){
         blogData.getPostsByCategory(cat).then((getResponse)=>{
             res.render("posts", {posts:getResponse})
         }).catch(()=>{
@@ -190,6 +225,25 @@ app.post("/posts/add",upload.single("featureImage"),(req, res) => {
     });
 });
 
+app.post("/login", (req, res) => {
+    req.body.userAgent = req.get('User-Agent');
+    authData.checkUser(req.body).then((user) => {
+        req.session.user = {
+            userName: user.userName,
+            email: user.email,
+            loginHistory: user.loginHistory
+        };
+        res.redirect('/posts');
+    }).catch((err) => {
+        res.render('login', {errorMessage: err, userName: req.body.userName});
+    });
+});
+
+app.get("/logout", (req, res) => {
+    req.session.reset();
+    res.redirect('/');
+});
+
 app.use(function(req,res,next){
     let route = req.path.substring(1);
     app.locals.activeRoute = "/" + (isNaN(route.split('/')[1]) ? route.replace(/\/(?!.*)/, "") : route.replace(/\/(.*)/, ""));
@@ -197,7 +251,7 @@ app.use(function(req,res,next){
     next();
     });
 
-app.get("/posts/add", (req, res) => {
+app.get("/posts/add",ensureLogin, (req, res) => {
     blogData.getCategories().then((data) => {
         res.render('addPost',{
             categories: data
@@ -206,36 +260,38 @@ app.get("/posts/add", (req, res) => {
     
 });
 
+app.get("/userHistory", ensureLogin, (req, res) => {
+    res.render('userHistory');
+});
 
-
-app.get("/posts/:id", (req, res) => {
+app.get("/posts/:id",ensureLogin, (req, res) => {
     blogData.getPostById(req.params.id).then((getResponse)=>{res.send(getResponse)}).catch((getReject)=>{res.send(getReject)})
 });
 
-app.get("/posts/delete/:id", (req, res) => {
+app.get("/posts/delete/:id",ensureLogin, (req, res) => {
     blogData.deletePostById(req.params.id).then(() => {
         res.redirect('/posts');
     }).catch(console.log("Unable to Remove Post / Post not found"))
 });
 
-app.get("/categories", (req, res) => {
+app.get("/categories",ensureLogin, (req, res) => {
     if(blogData.length == 0){
         res.render("categories",{message: "No results" });
     }
     blogData.getCategories().then((getResponse)=>{res.render("categories", {categories: getResponse})}).catch(()=>{res.render("categories", {message: "No results"})})
 });
 
-app.get("/categories/add", (req, res) => {
+app.get("/categories/add", ensureLogin, (req, res) => {
     res.render('addCategory')
 });
 
-app.post("/categories/add", (req, res) => {
+app.post("/categories/add",ensureLogin, (req, res) => {
     blogData.addCategory(req.body).then(() => {
         res.redirect('/categories');
     }).catch(console.log("Unable to Add category"))
 });
 
-app.get("/categories/delete/:id", (req, res) => {
+app.get("/categories/delete/:id",ensureLogin, (req, res) => {
     blogData.deleteCategoryById(req.params.id).then(() => {
         res.redirect('/categories');
     }).catch(console.log("Unable to Remove Category / Category not found)"))
@@ -245,7 +301,16 @@ app.get("*", (req, res) => {
     res.sendFile(path.join(__dirname, "./views/errorPage.html"))
 });
 
-blogData.initialize()
+
+
+/* blogData.initialize()
 .then(()=>{
     app.listen(HTTP_PORT,()=>{console.log(`Listening to port ${HTTP_PORT}`)})
-}).catch(()=>{console.log("Fail to initialize the data.")}) 
+}).catch(()=>{console.log("Fail to initialize the data.")})  */
+
+blogData.initialize().then(authData.initialize).then(function(){
+app.listen(HTTP_PORT, function(){
+console.log("app listening on: " + HTTP_PORT)
+});}).catch(function(err){
+console.log("unable to start server: " + err);
+});
